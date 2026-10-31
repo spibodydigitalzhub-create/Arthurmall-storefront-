@@ -2450,3 +2450,39 @@ body {
     font-size: 10px;
   }
 }
+
+/* LARGER PRODUCT IMAGE PRESENTATION */
+
+.product-gallery {
+  padding: 22px 18px 16px;
+}
+
+.product-main-image {
+  height: 330px;
+  width: 100%;
+  object-fit: contain;
+  padding: 0;
+}
+
+.product-thumbnail {
+  width: 66px;
+  height: 66px;
+  flex-basis: 66px;
+}
+
+@media (max-width: 650px) {
+  .product-gallery {
+    padding: 20px 14px 14px;
+  }
+
+  .product-main-image {
+    height: 300px;
+  }
+
+  .product-thumbnail {
+    width: 65px;
+    height: 65px;
+    flex-basis: 65px;
+  }
+}
+
