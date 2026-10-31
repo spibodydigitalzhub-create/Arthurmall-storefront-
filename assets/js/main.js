@@ -1,465 +1,218 @@
-"use strict";
-
 const WHATSAPP_NUMBER = "233570848484";
+
+const productGrid = document.getElementById("productGrid");
+const productSelect = document.getElementById("productSelect");
+const orderForm = document.getElementById("orderForm");
 
 let products = [];
 
-let cart = [];
-let activeCategory = "All";
-let searchTerm = "";
-let sortMode = "featured";
-
-const $ = (id) => document.getElementById(id);
-
-const productGrid = $("productGrid");
-const cartDrawer = $("cartDrawer");
-const cartOverlay = $("cartOverlay");
-const cartItems = $("cartItems");
-const checkoutModal = $("checkoutModal");
-const checkoutForm = $("checkoutForm");
-
-const formatPrice = (amount) =>
-  `GH₵${Number(amount).toLocaleString("en-GH")}`;
-
-function trackPixel(event, data = {}) {
-  if (typeof window.fbq === "function") {
-    window.fbq("track", event, data);
-  }
-}
-
-// Product rendering
-function getVisibleProducts() {
-  let result = products.filter((product) => {
-    const matchesCategory =
-      activeCategory === "All" ||
-      product.category === activeCategory;
-
-    const matchesSearch =
-      `${product.name} ${product.category} ${product.description}`
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-
-    return matchesCategory && matchesSearch;
-  });
-
-  if (sortMode === "low") {
-    result.sort((a, b) => a.price - b.price);
-  } else if (sortMode === "high") {
-    result.sort((a, b) => b.price - a.price);
-  }
-
-  return result;
-}
+const formatPrice = price =>
+  `GH₵${Number(price).toLocaleString("en-GH")}`;
 
 function renderProducts() {
-  const visibleProducts = getVisibleProducts();
+  productGrid.innerHTML = "";
+  productSelect.innerHTML =
+    '<option value="">Select your preferred phone</option>';
 
-  $("productResultCount").textContent =
-    `${visibleProducts.length} product${visibleProducts.length === 1 ? "" : "s"}`;
-
-  if (!visibleProducts.length) {
-    productGrid.innerHTML = `
-      <div class="empty-products">
-        No products found. Try another search.
-      </div>
-    `;
-    return;
-  }
-
-  productGrid.innerHTML = visibleProducts.map((product) => {
+  products.forEach(product => {
     const images = product.images?.length
       ? product.images
       : [product.image];
 
-    return `
-      <article class="product-card">
-        <div class="product-image">
-          <img
-            src="${product.image}"
-            alt="${product.name}"
-            loading="lazy"
-            data-main-image="${product.id}"
-          >
+    const option = document.createElement("option");
+    option.value = product.id;
+    option.textContent =
+      `${product.name} — ${formatPrice(product.price)}`;
 
-          <span class="product-tag">${product.tag || "Featured"}</span>
-        </div>
+    productSelect.appendChild(option);
 
-        ${images.length > 1 ? `
-          <div class="product-gallery">
-            ${images.map((image, index) => `
-              <button
-                type="button"
-                class="gallery-thumb ${index === 0 ? "active" : ""}"
-                data-gallery-image="${product.id}"
-                data-image="${image}"
-                aria-label="View product image ${index + 1}"
-              >
-                <img src="${image}" alt="" loading="lazy">
-              </button>
-            `).join("")}
-          </div>
-        ` : ""}
+    const card = document.createElement("article");
+    card.className = "product-card";
 
-        <div class="product-info">
-          <span class="product-category">${product.category}</span>
+    const gallery = document.createElement("div");
+    gallery.className = "product-gallery";
 
-          <h3>${product.name}</h3>
+    const mainImage = document.createElement("img");
+    mainImage.className = "product-main-image";
+    mainImage.src = images[0];
+    mainImage.alt = product.name;
+    mainImage.loading = "lazy";
 
-          <p class="product-description">
-            ${product.description}
-          </p>
+    gallery.appendChild(mainImage);
 
-          <div class="product-highlights">
-            ${(product.highlights || []).map(([value, label]) => `
-              <div class="product-highlight">
-                <strong>${value}</strong>
-                <span>${label}</span>
-              </div>
-            `).join("")}
-          </div>
+    const thumbnails = document.createElement("div");
+    thumbnails.className = "product-thumbnails";
 
-          <div class="product-assurance">
-            <span>✓ ${product.delivery || "Free delivery"}</span>
-            <span>✓ ${product.payment || "Pay on delivery"}</span>
-          </div>
+    images.forEach((image, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "product-thumbnail";
 
-          <div class="product-bottom">
-            <strong class="product-price">
-              ${formatPrice(product.price)}
-            </strong>
+      if (index === 0) button.classList.add("active");
 
-            <button class="add-button" data-add="${product.id}">
-              Add to cart +
-            </button>
-          </div>
-        </div>
-      </article>
-    `;
-  }).join("");
-}
-// Add to cart
-function addToCart(productId) {
-  const product = products.find((item) => item.id === productId);
-  if (!product) return;
+      button.setAttribute(
+        "aria-label",
+        `View ${product.name} image ${index + 1}`
+      );
 
-  const existing = cart.find((item) => item.id === productId);
+      const thumbnailImage = document.createElement("img");
+      thumbnailImage.src = image;
+      thumbnailImage.alt = "";
 
-  if (existing) {
-    existing.quantity += 1;
-  } else {
-    cart.push({ ...product, quantity: 1 });
-  }
+      button.appendChild(thumbnailImage);
 
-  trackPixel("AddToCart", {
-    content_ids: [String(product.id)],
-    content_name: product.name,
-    content_type: "product",
-    value: product.price,
-    currency: "GHS"
-  });
+      button.addEventListener("click", () => {
+        mainImage.src = image;
 
-  renderCart();
+        thumbnails.querySelectorAll("button").forEach(item =>
+          item.classList.remove("active")
+        );
 
-  const button = productGrid.querySelector(
-    `[data-add="${productId}"]`
-  );
+        button.classList.add("active");
+      });
 
-  if (button) {
-    button.textContent = "Added ✓";
-
-    setTimeout(() => {
-      if (button.isConnected) {
-        button.textContent = "Add to cart +";
-      }
-    }, 900);
-  }
-}
-
-// Remove cart item
-function removeFromCart(productId) {
-  cart = cart.filter((item) => item.id !== productId);
-  renderCart();
-}
-
-// Cart total
-function getCartTotal() {
-  return cart.reduce(
-    (total, item) => total + item.price * item.quantity,
-    0
-  );
-}
-
-// Render cart
-function renderCart() {
-  const totalQuantity = cart.reduce(
-    (total, item) => total + item.quantity,
-    0
-  );
-
-  $("cartCount").textContent = totalQuantity;
-  $("cartTotal").textContent = formatPrice(getCartTotal());
-
-  if (!cart.length) {
-    cartItems.innerHTML = `
-      <div class="cart-empty">
-        Your cart is empty.<br>
-        Explore our smartphones to get started.
-      </div>
-    `;
-    return;
-  }
-
-  cartItems.innerHTML = cart.map((item) => `
-    <div class="cart-item">
-      <img src="${item.image}" alt="${item.name}">
-      <div>
-        <h4>${item.name}</h4>
-        <p>${formatPrice(item.price)} × ${item.quantity}</p>
-      </div>
-      <button class="remove-item" data-remove="${item.id}">
-        Remove
-      </button>
-    </div>
-  `).join("");
-}
-
-// Cart drawer
-function openCart() {
-  cartDrawer.classList.add("open");
-  cartOverlay.classList.add("open");
-  document.body.classList.add("no-scroll");
-}
-
-function closeCart() {
-  cartDrawer.classList.remove("open");
-  cartOverlay.classList.remove("open");
-  document.body.classList.remove("no-scroll");
-}
-
-// Checkout
-function openCheckout() {
-  if (!cart.length) {
-    alert("Your cart is empty. Add a smartphone first.");
-    return;
-  }
-
-  closeCart();
-
-  $("checkoutTotal").textContent = formatPrice(getCartTotal());
-
-  trackPixel("InitiateCheckout", {
-    content_ids: cart.map((item) => String(item.id)),
-    contents: cart.map((item) => ({
-      id: String(item.id),
-      quantity: item.quantity
-    })),
-    content_type: "product",
-    num_items: cart.reduce((sum, item) => sum + item.quantity, 0),
-    value: getCartTotal(),
-    currency: "GHS"
-  });
-
-  checkoutModal.classList.add("open");
-  checkoutModal.setAttribute("aria-hidden", "false");
-  document.body.classList.add("no-scroll");
-}
-
-function closeCheckout() {
-  checkoutModal.classList.remove("open");
-  checkoutModal.setAttribute("aria-hidden", "true");
-  document.body.classList.remove("no-scroll");
-}
-
-// Submit order to WhatsApp
-checkoutForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-
-  if (!cart.length) {
-    alert("Your cart is empty.");
-    closeCheckout();
-    return;
-  }
-
-  if (!checkoutForm.reportValidity()) return;
-
-  const formData = new FormData(checkoutForm);
-
-  const name = formData.get("customerName").trim();
-  const phone = formData.get("customerPhone").trim();
-  const region = formData.get("region");
-  const town = formData.get("town").trim();
-  const address = formData.get("address").trim();
-  const instructions =
-    formData.get("instructions").trim() || "None";
-
-  const lines = cart.map((item) =>
-    `${item.name} x ${item.quantity} — ${formatPrice(item.price * item.quantity)}`
-  );
-
-  const message = [
-    "HELLO ARTHURMALL! I WOULD LIKE TO PLACE AN ORDER.",
-    "",
-    "CUSTOMER DETAILS",
-    `Name: ${name}`,
-    `Phone: ${phone}`,
-    `Region: ${region}`,
-    `City/Town: ${town}`,
-    `Delivery address: ${address}`,
-    `Delivery instructions: ${instructions}`,
-    "",
-    "ORDER DETAILS",
-    ...lines,
-    "",
-    `TOTAL: ${formatPrice(getCartTotal())}`,
-    "",
-    "Payment method: Pay on delivery.",
-    "Please confirm product availability and delivery arrangements.",
-    "",
-    "Thank you."
-  ].join("\n");
-
-  const whatsappURL =
-    `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-
-  // Do not record Purchase here.
-  // Opening WhatsApp does not prove an order was completed.
-  window.location.href = whatsappURL;
-});
-
-// Search
-$("searchToggle").addEventListener("click", () => {
-  const panel = $("searchPanel");
-  panel.classList.toggle("open");
-
-  if (panel.classList.contains("open")) {
-    $("searchInput").focus();
-  }
-});
-
-$("searchInput").addEventListener("input", (event) => {
-  searchTerm = event.target.value.trim();
-  renderProducts();
-});
-
-// Sorting
-$("sortProducts").addEventListener("change", (event) => {
-  sortMode = event.target.value;
-  renderProducts();
-});
-
-// Category filtering
-document.querySelectorAll("[data-category]").forEach((link) => {
-  link.addEventListener("click", () => {
-    activeCategory = link.dataset.category;
-    renderProducts();
-  });
-});
-
-// Product actions
-productGrid.addEventListener("click", (event) => {
-  const galleryButton = event.target.closest("[data-gallery-image]");
-
-  if (galleryButton) {
-    const productId = galleryButton.dataset.galleryImage;
-    const mainImage = productGrid.querySelector(
-      `[data-main-image="${productId}"]`
-    );
-
-    if (mainImage) {
-      mainImage.src = galleryButton.dataset.image;
-    }
-
-    productGrid.querySelectorAll(
-      `[data-gallery-image="${productId}"]`
-    ).forEach(button => button.classList.remove("active"));
-
-    galleryButton.classList.add("active");
-    return;
-  }
-
-  const button = event.target.closest("[data-add]");
-
-  if (button) {
-    addToCart(Number(button.dataset.add));
-  }
-});
-
-// Cart actions
-cartItems.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-remove]");
-
-  if (button) {
-    removeFromCart(Number(button.dataset.remove));
-  }
-});
-
-// Cart controls
-$("cartToggle").addEventListener("click", openCart);
-$("cartClose").addEventListener("click", closeCart);
-cartOverlay.addEventListener("click", closeCart);
-$("checkoutButton").addEventListener("click", openCheckout);
-
-// Checkout controls
-$("checkoutClose").addEventListener("click", closeCheckout);
-$("checkoutOverlay").addEventListener("click", closeCheckout);
-
-// Mobile navigation
-$("menuToggle").addEventListener("click", () => {
-  $("desktopNav").classList.toggle("open");
-});
-
-document.querySelectorAll("#desktopNav a").forEach((link) => {
-  link.addEventListener("click", () => {
-    $("desktopNav").classList.remove("open");
-  });
-});
-
-// Keyboard support
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") {
-    closeCart();
-    closeCheckout();
-    $("desktopNav").classList.remove("open");
-    $("searchPanel").classList.remove("open");
-  }
-});
-
-// Footer year
-$("currentYear").textContent = new Date().getFullYear();
-
-// Load product catalogue
-async function loadProducts() {
-  try {
-    const response = await fetch("products.json", {
-      cache: "no-store"
+      thumbnails.appendChild(button);
     });
 
+    gallery.appendChild(thumbnails);
+
+    const content = document.createElement("div");
+    content.className = "product-card-content";
+
+    const tag = document.createElement("span");
+    tag.className = "product-tag";
+    tag.textContent = product.tag || "Smartphone";
+
+    const name = document.createElement("h3");
+    name.textContent = product.name;
+
+    const description = document.createElement("p");
+    description.textContent = product.description || "";
+
+    const price = document.createElement("div");
+    price.className = "product-price";
+    price.textContent = formatPrice(product.price);
+
+    const highlights = document.createElement("div");
+    highlights.className = "product-highlights";
+
+    (product.highlights || []).forEach(item => {
+      const highlight = document.createElement("span");
+      highlight.textContent = `${item[0]} ${item[1]}`;
+      highlights.appendChild(highlight);
+    });
+
+    const delivery = document.createElement("p");
+    delivery.className = "product-delivery";
+    delivery.textContent = product.delivery || "";
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "primary-button product-order-button";
+    button.textContent = "ORDER NOW";
+
+    button.addEventListener("click", () => {
+      productSelect.value = String(product.id);
+
+      document.getElementById("order").scrollIntoView({
+        behavior: "smooth"
+      });
+
+      productSelect.focus({ preventScroll: true });
+    });
+
+    content.append(
+      tag,
+      name,
+      description,
+      price,
+      highlights,
+      delivery,
+      button
+    );
+
+    card.append(gallery, content);
+    productGrid.appendChild(card);
+  });
+}
+
+async function loadProducts() {
+  try {
+    const response = await fetch("products.json");
+
     if (!response.ok) {
-      throw new Error("Could not load product catalogue.");
+      throw new Error("Unable to load products.");
     }
 
-    const data = await response.json();
+    products = await response.json();
 
-    if (!Array.isArray(data)) {
-      throw new Error("Invalid product catalogue format.");
+    if (!Array.isArray(products) || !products.length) {
+      throw new Error("No products found.");
     }
 
-    products = data;
     renderProducts();
-    renderCart();
-
   } catch (error) {
-    console.error("Product loading error:", error);
-
-    productGrid.innerHTML = `
-      <div class="empty-products">
-        Products are temporarily unavailable.
-        Please try again later.
-      </div>
-    `;
-
-    $("productResultCount").textContent = "Catalogue unavailable";
+    console.error(error);
+    productGrid.textContent =
+      "Products could not load. Please refresh the page.";
   }
 }
+
+function getFieldValue(id) {
+  return document.getElementById(id)?.value.trim() || "";
+}
+
+orderForm.addEventListener("submit", event => {
+  event.preventDefault();
+
+  const product = products.find(
+    item => String(item.id) === productSelect.value
+  );
+
+  const phone = getFieldValue("customerPhone");
+
+  if (!product) {
+    alert("Please select a phone.");
+    productSelect.focus();
+    return;
+  }
+
+  if (!phone) {
+    alert("Please enter your phone number.");
+    document.getElementById("customerPhone").focus();
+    return;
+  }
+
+  const name = getFieldValue("customerName");
+  const region = getFieldValue("customerRegion");
+  const town = getFieldValue("customerTown");
+  const address = getFieldValue("customerAddress");
+
+  const message = [
+    "Hello Arthur Mall! I would like to place an order.",
+    "",
+    `Product: ${product.name}`,
+    `Price: ${formatPrice(product.price)}`,
+    `Customer phone: ${phone}`,
+    name && `Customer name: ${name}`,
+    region && `Region: ${region}`,
+    town && `Town/City: ${town}`,
+    address && `Delivery address: ${address}`,
+    "",
+    "Please contact me to confirm my order."
+  ].filter(Boolean).join("\n");
+
+  if (typeof window.fbq === "function") {
+    window.fbq("track", "Lead");
+  }
+
+  const url =
+    `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+
+  window.open(url, "_blank");
+});
+
+document.getElementById("currentYear").textContent =
+  new Date().getFullYear();
 
 loadProducts();
