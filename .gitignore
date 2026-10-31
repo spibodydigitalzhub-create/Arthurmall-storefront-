@@ -1,0 +1,29 @@
+# Private administration files
+admin/
+data/
+
+# Local backups and previous versions
+index-old.html
+index-before-*.html
+products-before-*.json
+
+# Environment and secret files
+.env
+.env.*
+*.key
+*.pem
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Development JavaScript backups
+assets/js/*-before-*.js
+assets/js/main-old.js
+
+# Image backups
+assets/images/*-backup.*
+
+# Development CSS backups
+assets/css/*-before-*.css
+assets/css/style-old.css

@@ -1,0 +1,61 @@
+[
+  {
+    "id": 1,
+    "name": "Xiaomi Redmi 14C",
+    "category": "Smartphones",
+    "price": 1500,
+    "image": "assets/images/products/redmi-14c-1.jpeg",
+    "images": [
+      "assets/images/products/redmi-14c-1.jpeg",
+      "assets/images/products/redmi-14c-2.jpeg",
+      "assets/images/products/redmi-14c-3.jpeg"
+    ],
+    "description": "Discover the Redmi 14C: a stylish smartphone combining an immersive display, capable camera and long-lasting battery. Get 8GB RAM and 256GB storage.",
+    "highlights": [
+      [
+        "8GB",
+        "RAM"
+      ],
+      [
+        "256GB",
+        "Storage"
+      ],
+      [
+        "50MP",
+        "AI Camera"
+      ]
+    ],
+    "tag": "Featured",
+    "delivery": "Free delivery within Accra, Tema and Kasoa",
+    "payment": "Pay on delivery"
+  },
+  {
+    "id": 2,
+    "name": "Xiaomi Redmi 15C",
+    "category": "Smartphones",
+    "price": 1750,
+    "image": "assets/images/products/redmi-15c-1.jpeg",
+    "images": [
+      "assets/images/products/redmi-15c-1.jpeg",
+      "assets/images/products/redmi-15c-2.jpeg",
+      "assets/images/products/redmi-15c-3.jpeg",
+      "assets/images/products/redmi-15c-4.jpeg",
+      "assets/images/products/redmi-15c-5.jpeg",
+      "assets/images/products/redmi-15c-6.jpeg"
+    ],
+    "description": "Discover the Xiaomi Redmi 15C with 8GB RAM and 256GB storage.",
+    "highlights": [
+      [
+        "8GB",
+        "RAM"
+      ],
+      [
+        "256GB",
+        "Storage"
+      ]
+    ],
+    "tag": "New Arrival",
+    "delivery": "Free delivery within Accra, Tema and Kasoa",
+    "payment": "Pay on delivery"
+  }
+]
