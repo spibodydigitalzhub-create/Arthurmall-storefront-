@@ -204,6 +204,14 @@ orderForm.addEventListener("submit", event => {
 
   if (typeof window.fbq === "function") {
     window.fbq("track", "Lead");
+
+    window.fbq("track", "Purchase", {
+      value: Number(product.price),
+      currency: "GHS",
+      content_name: product.name,
+      content_ids: [String(product.id)],
+      content_type: "product"
+    });
   }
 
   const url =
