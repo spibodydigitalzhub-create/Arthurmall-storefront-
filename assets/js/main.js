@@ -38,6 +38,18 @@ function renderProducts() {
     mainImage.alt = product.name;
     mainImage.loading = "lazy";
 
+mainImage.addEventListener("click", () => {
+  if (typeof window.fbq === "function") {
+    window.fbq("track", "ViewContent", {
+      content_name: product.name,
+      content_ids: [String(product.id)],
+      content_type: "product",
+      value: Number(product.price),
+      currency: "GHS"
+    });
+  }
+});
+
     gallery.appendChild(mainImage);
 
     const thumbnails = document.createElement("div");
@@ -112,15 +124,24 @@ function renderProducts() {
     button.textContent = "ORDER NOW";
 
     button.addEventListener("click", () => {
-      productSelect.value = String(product.id);
+  productSelect.value = String(product.id);
 
-      document.getElementById("order").scrollIntoView({
-        behavior: "smooth"
-      });
-
-      productSelect.focus({ preventScroll: true });
+  if (typeof window.fbq === "function") {
+    window.fbq("track", "InitiateCheckout", {
+      content_name: product.name,
+      content_ids: [String(product.id)],
+      content_type: "product",
+      value: Number(product.price),
+      currency: "GHS"
     });
+  }
 
+  document.getElementById("order").scrollIntoView({
+    behavior: "smooth"
+  });
+
+  productSelect.focus({ preventScroll: true });
+});
     content.append(
       tag,
       name,
@@ -203,16 +224,14 @@ orderForm.addEventListener("submit", event => {
   ].filter(Boolean).join("\n");
 
   if (typeof window.fbq === "function") {
-    window.fbq("track", "Lead");
-
-    window.fbq("track", "Purchase", {
-      value: Number(product.price),
-      currency: "GHS",
-      content_name: product.name,
-      content_ids: [String(product.id)],
-      content_type: "product"
-    });
-  }
+  window.fbq("track", "Lead", {
+    content_name: product.name,
+    content_ids: [String(product.id)],
+    content_type: "product",
+    value: Number(product.price),
+    currency: "GHS"
+  });
+}
 
   const url =
     `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
