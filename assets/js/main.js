@@ -9,12 +9,26 @@ let products = [];
 const formatPrice = price =>
   `GH₵${Number(price).toLocaleString("en-GH")}`;
 
+function trackPixelEvent(eventName, product) {
+  if (typeof window.fbq !== "function") return;
+
+  window.fbq("track", eventName, {
+    content_name: product.name,
+    content_ids: [String(product.id)],
+    content_type: "product",
+    value: Number(product.price),
+    currency: "GHS"
+  });
+}
+
 function renderProducts() {
   productGrid.innerHTML = "";
   productSelect.innerHTML =
     '<option value="">Select your preferred phone</option>';
 
   products.forEach(product => {
+    const available = product.available !== false;
+
     const images = product.images?.length
       ? product.images
       : [product.image];
@@ -22,12 +36,18 @@ function renderProducts() {
     const option = document.createElement("option");
     option.value = product.id;
     option.textContent =
-      `${product.name} — ${formatPrice(product.price)}`;
+      `${product.name} — ${formatPrice(product.price)}` +
+      (available ? "" : " (OUT OF STOCK)");
+    option.disabled = !available;
 
     productSelect.appendChild(option);
 
     const card = document.createElement("article");
     card.className = "product-card";
+
+    if (!available) {
+      card.classList.add("out-of-stock");
+    }
 
     const gallery = document.createElement("div");
     gallery.className = "product-gallery";
@@ -38,17 +58,9 @@ function renderProducts() {
     mainImage.alt = product.name;
     mainImage.loading = "lazy";
 
-mainImage.addEventListener("click", () => {
-  if (typeof window.fbq === "function") {
-    window.fbq("track", "ViewContent", {
-      content_name: product.name,
-      content_ids: [String(product.id)],
-      content_type: "product",
-      value: Number(product.price),
-      currency: "GHS"
+    mainImage.addEventListener("click", () => {
+      trackPixelEvent("ViewContent", product);
     });
-  }
-});
 
     gallery.appendChild(mainImage);
 
@@ -81,6 +93,8 @@ mainImage.addEventListener("click", () => {
         );
 
         button.classList.add("active");
+
+        trackPixelEvent("ViewContent", product);
       });
 
       thumbnails.appendChild(button);
@@ -93,7 +107,9 @@ mainImage.addEventListener("click", () => {
 
     const tag = document.createElement("span");
     tag.className = "product-tag";
-    tag.textContent = product.tag || "Smartphone";
+    tag.textContent = available
+      ? (product.tag || "Smartphone")
+      : "OUT OF STOCK";
 
     const name = document.createElement("h3");
     name.textContent = product.name;
@@ -121,27 +137,23 @@ mainImage.addEventListener("click", () => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "primary-button product-order-button";
-    button.textContent = "ORDER NOW";
+    button.textContent = available ? "ORDER NOW" : "OUT OF STOCK";
+    button.disabled = !available;
 
     button.addEventListener("click", () => {
-  productSelect.value = String(product.id);
+      if (!available) return;
 
-  if (typeof window.fbq === "function") {
-    window.fbq("track", "InitiateCheckout", {
-      content_name: product.name,
-      content_ids: [String(product.id)],
-      content_type: "product",
-      value: Number(product.price),
-      currency: "GHS"
+      productSelect.value = String(product.id);
+
+      trackPixelEvent("InitiateCheckout", product);
+
+      document.getElementById("order").scrollIntoView({
+        behavior: "smooth"
+      });
+
+      productSelect.focus({ preventScroll: true });
     });
-  }
 
-  document.getElementById("order").scrollIntoView({
-    behavior: "smooth"
-  });
-
-  productSelect.focus({ preventScroll: true });
-});
     content.append(
       tag,
       name,
@@ -198,6 +210,13 @@ orderForm.addEventListener("submit", event => {
     return;
   }
 
+  if (product.available === false) {
+    alert("Sorry, this product is currently out of stock.");
+    productSelect.value = "";
+    productSelect.focus();
+    return;
+  }
+
   if (!phone) {
     alert("Please enter your phone number.");
     document.getElementById("customerPhone").focus();
@@ -223,15 +242,7 @@ orderForm.addEventListener("submit", event => {
     "Please contact me to confirm my order."
   ].filter(Boolean).join("\n");
 
-  if (typeof window.fbq === "function") {
-  window.fbq("track", "Lead", {
-    content_name: product.name,
-    content_ids: [String(product.id)],
-    content_type: "product",
-    value: Number(product.price),
-    currency: "GHS"
-  });
-}
+  trackPixelEvent("Lead", product);
 
   const url =
     `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
